@@ -1,43 +1,64 @@
-import { Request, Response } from 'express';
+import { ApiError } from '../utils';
+import { COLLECTIONS } from '../constants/db.constants';
+import { NextFunction, Request, Response } from 'express';
+import {
+    createDocument,
+    deleteDocument,
+    getAllDocuments,
+    getDocumentById,
+    updateDocument
+} from '../db/queries';
 
-const cars: any[] = [];  // Aquí puedes simular una base de datos
+const { CARS } = COLLECTIONS
 
-const getCars = (req: Request, res: Response) => {
-    res.json(cars);
-};
-
-const getCarById = (req: Request, res: Response) => {
-    const car = cars.find(c => c.id === req.params.id);
-    if (car) {
-        res.json(car);
-    } else {
-        res.status(404).json({ message: 'Car not found' });
+const getCars = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const cars = await getAllDocuments(CARS)
+        if (cars.length === 0) throw new ApiError(404, 'No cars found');
+        res.status(200).json(cars);
+    } catch (error) {
+        next(error);
     }
 };
 
-const createCar = (req: Request, res: Response) => {
-    const newCar = { ...req.body, id: `${Date.now()}` };
-    cars.push(newCar);
-    res.status(201).json(newCar);
-};
-
-const updateCar = (req: Request, res: Response) => {
-    const index = cars.findIndex(c => c.id === req.params.id);
-    if (index !== -1) {
-        cars[index] = { ...cars[index], ...req.body };
-        res.json(cars[index]);
-    } else {
-        res.status(404).json({ message: 'Car not found' });
+const getCarById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const car = await getDocumentById(CARS, id);
+        if (!car) throw new ApiError(404, 'Car not found');
+        res.status(200).json(car);
+    } catch (error) {
+        next(error);
     }
 };
 
-const deleteCar = (req: Request, res: Response) => {
-    const index = cars.findIndex(c => c.id === req.params.id);
-    if (index !== -1) {
-        cars.splice(index, 1);
-        res.status(204).end();
-    } else {
-        res.status(404).json({ message: 'Car not found' });
+const createCar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const newCar = await createDocument(CARS, req.body);
+        if (!newCar) throw new ApiError(500, 'Error creating car');
+        res.status(201).json(newCar);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateCar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { params: { id }, body } = req;
+        const updatedCar = await updateDocument(CARS, id, body);
+        res.status(200).json(updatedCar);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteCar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        await deleteDocument(CARS, id);
+        res.status(200).json({ message: `Car with id: ${id}, deleted successfully` });
+    } catch (error) {
+        next(error);
     }
 };
 
