@@ -1,7 +1,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 
 dotenv.config();
 
